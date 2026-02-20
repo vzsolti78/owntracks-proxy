@@ -1,10 +1,8 @@
-export const config = { runtime: "edge" };
+export const runtime = "edge";
 
 const GAS_URL =
   "https://script.google.com/macros/s/AKfycbxLQHc9B3eBMmDXDLdNsDWHGU0YL_Jez5KJmgbzn3dKD7agnYR-nO_S7Hn4w9Bnj-GZ/exec";
 
-// Edge-en nem garantált a tartós memória, de retry-flood ellen sokszor elég.
-// Ha még stabilabb kell, akkor KV/Upstash kellene, de első körben ne bonyolítsuk.
 const seen = new Map<string, number>();
 
 function ok() {
@@ -27,25 +25,24 @@ export default async function handler(req: Request) {
 
   const now = Date.now();
 
-  // --- RATE LIMIT: 30 mp / eszköz ---
-  const bucket30 = Math.floor(now / 30000);
-  const rlKey = `rl:${tid}:${bucket30}`;
+  // 30 mp rate limit
+  const bucket = Math.floor(now / 30000);
+  const rlKey = `${tid}:${bucket}`;
   if (seen.has(rlKey)) return ok();
   seen.set(rlKey, now);
 
-  // --- DUP védelem: ugyanaz a pont (tid+tst) 5 percig ---
+  // 5 perc dup védelem
   if (tst) {
-    const dupKey = `dup:${tid}:${tst}`;
+    const dupKey = `${tid}:${tst}`;
     const prev = seen.get(dupKey);
     if (prev && now - prev < 300000) return ok();
     seen.set(dupKey, now);
   }
 
-  // forward (nem blokkoljuk OwnTracks válaszát)
   fetch(GAS_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body
+    body,
   }).catch(() => {});
 
   return ok();
