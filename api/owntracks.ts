@@ -13,15 +13,12 @@ function ok() {
 }
 
 export default async function handler(req: Request) {
-  // 🔴 EZ AZ ÚJ RÉSZ – GET-re azonnali válasz
-  if (req.method === "GET") {
-    return ok();
-  }
+  // GET-re azonnali válasz (böngészős teszt)
+  if (req.method === "GET") return ok();
 
-  if (req.method !== "POST") {
-    return ok();
-  }
+  if (req.method !== "POST") return ok();
 
+  // 🔴 FONTOS: body olvasása után AZONNAL válaszolunk
   const body = await req.text();
 
   let tid = "no_tid";
@@ -35,13 +32,13 @@ export default async function handler(req: Request) {
 
   const now = Date.now();
 
-  // 30 mp rate limit
+  // --- 30 mp rate limit ---
   const bucket = Math.floor(now / 30000);
   const rlKey = `${tid}:${bucket}`;
   if (seen.has(rlKey)) return ok();
   seen.set(rlKey, now);
 
-  // 5 perc dup védelem
+  // --- 5 perc dup védelem ---
   if (tst) {
     const dupKey = `${tid}:${tst}`;
     const prev = seen.get(dupKey);
@@ -49,12 +46,14 @@ export default async function handler(req: Request) {
     seen.set(dupKey, now);
   }
 
-  // forward GAS felé
+  // 🔴 FIRE-AND-FORGET forward (nem várunk rá)
   fetch(GAS_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body,
+    keepalive: true,
   }).catch(() => {});
 
+  // 🔴 AZONNALI válasz → nincs timeout
   return ok();
 }
