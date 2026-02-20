@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/owntracks.ts": {
+      "runtime": "edge"
+    }
+  }
+}
