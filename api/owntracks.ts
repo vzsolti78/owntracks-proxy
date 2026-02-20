@@ -6,11 +6,21 @@ const GAS_URL =
 const seen = new Map<string, number>();
 
 function ok() {
-  return new Response("OK", { status: 200, headers: { "Content-Type": "text/plain" } });
+  return new Response("OK", {
+    status: 200,
+    headers: { "Content-Type": "text/plain" },
+  });
 }
 
 export default async function handler(req: Request) {
-  if (req.method !== "POST") return ok();
+  // 🔴 EZ AZ ÚJ RÉSZ – GET-re azonnali válasz
+  if (req.method === "GET") {
+    return ok();
+  }
+
+  if (req.method !== "POST") {
+    return ok();
+  }
 
   const body = await req.text();
 
@@ -39,6 +49,7 @@ export default async function handler(req: Request) {
     seen.set(dupKey, now);
   }
 
+  // forward GAS felé
   fetch(GAS_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
